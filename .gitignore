@@ -1,0 +1,59 @@
+*.exe
+*.zip
+*.tar
+*.dmg
+*.pem
+autotest/config
+cloud_account
+webuitest.json
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+develop-eggs/
+dist/
+eggs/
+.eggs/
+var/
+wheels/
+*.egg-info/
+*.egg
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# PyCharm
+*.iml
+*.iws
+*.ipr
+.idea/**
+
+# Vscode
+*.code-workspace
+.history/
+.vscode/
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+.terraformrc
+terraform.rc
+.terraform.lock.hcl
+provider_cred.json
+provider_cred.tfvars

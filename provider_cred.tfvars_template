@@ -1,0 +1,12 @@
+aws_access_key = ""
+aws_secret_key = ""
+
+gcp_project_id = ""
+gcp_region = ""
+gcp_credentials_filepath = "/path/gcp_project.json"
+
+aviatrix_controller_password = ""
+aviatrix_admin_email = ""
+aviatrix_license_id = ""
+
+
