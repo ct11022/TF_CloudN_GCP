@@ -75,7 +75,7 @@ module "aviatrix_controller_build_new_vpc" {
 #Buile Aviatrix controller at existed VPC
 module "aviatrix_controller_build_existed_vpc" {
   count   = (local.new_vpc ? 0 : 1)
-  source  = "github.com/AviatrixSystems/terraform-modules.git//aviatrix-controller-build?ref=master"
+  source  = "git@github.com:AviatrixDev/terraform-modules-aws-internal.git//aviatrix-controller-build?ref=main"
   vpc     = var.controller_vpc_id
   subnet  = var.controller_subnet_id
   keypair = (local.new_key ? aws_key_pair.controller[0].key_name : var.keypair_name)
@@ -86,7 +86,7 @@ module "aviatrix_controller_build_existed_vpc" {
   name_prefix = var.testbed_name
   root_volume_size = "64"
   incoming_ssl_cidr = "${concat(var.incoming_ssl_cidr, [var.controller_vpc_cidr])}"
-
+  ssh_cidrs = var.incoming_ssl_cidr
 }
 
 # resource "time_sleep" "wait_210s" {
@@ -144,7 +144,7 @@ module "gcp-spoke-vnet" {
   pub_hostnum           = 20
   pri_hostnum           = 40
   ssh_user              = var.ssh_user
-  public_key            = file(var.public_key_path)
+  public_key            = (local.new_key ? tls_private_key.terraform_key[0].public_key_openssh : file(var.public_key_path))
 }
 
 # Create a GCP VPC
