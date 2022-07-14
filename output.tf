@@ -12,7 +12,12 @@ output "transit_gw" {
     vpc_id: aviatrix_transit_gateway.transit.vpc_id
   }
 }
-
+output "spoke_gw" {
+  value = {
+    name: aviatrix_spoke_gateway.spoke[*].gw_name,
+    vpc_id: aviatrix_spoke_gateway.spoke[*].vpc_id
+  }
+}
 output "spoke_gw_name" {
   value = aviatrix_spoke_gateway.spoke[*].gw_name
 }
