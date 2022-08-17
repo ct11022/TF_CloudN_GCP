@@ -64,36 +64,8 @@ data "aws_subnet" "controller" {
   id = var.subnet_id
 }
 
-# Create EIP for controller
-# resource "aws_eip" "controller" {
-#   vpc                       = true
-#   instance                  = aws_instance.controller.id
-#   associate_with_private_ip = cidrhost(data.aws_subnet.controller.cidr_block,"101")
-#   depends_on                = [aws_internet_gateway.controller]
-
-#   tags = {
-#     Name = "Smoke Test Controller EIP"
-#   }
-# }
-
-# # Create Aviatrix controller instance
-# resource "aws_instance" "controller" {
-#   ami                         = var.controller_ami
-#   instance_type               = "t2.large"
-#   associate_public_ip_address = true
-#   subnet_id                   = var.subnet_id
-#   key_name                    = var.keypair_name
-#   private_ip                  = cidrhost(data.aws_subnet.controller.cidr_block,"101")
-#   vpc_security_group_ids      = [aws_security_group.controller.id]
-#   iam_instance_profile        = "aviatrix-role-ec2"
-
-#   tags = {
-#     Name = "Smoke Test Controller"
-#   }
-# }
-
 module "aviatrixcontroller" {
-  source  = "github.com/AviatrixSystems/terraform-modules.git//aviatrix-controller-build?ref=master"
+  source  = "git@github.com:AviatrixDev/terraform-modules-aws-internal.git//aviatrix-controller-build?ref=main"
   vpc     = var.vpc_id
   subnet  = var.subnet_id
   keypair = var.keypair_name
@@ -103,4 +75,5 @@ module "aviatrixcontroller" {
   controller_name = var.name
   root_volume_size = "64"
   incoming_ssl_cidr = var.incoming_ssl_cidr
+  ssh_cidrs = var.ssh_cidrs
 }
