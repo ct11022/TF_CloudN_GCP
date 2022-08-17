@@ -67,9 +67,9 @@ module "aviatrix_controller_build_new_vpc" {
   vpc_id         = aws_vpc.controller[0].id
   subnet_id      = aws_subnet.controller[0].id
   keypair_name   = (local.new_key ? aws_key_pair.controller[0].key_name : var.keypair_name)
-  controller_ami = var.aviatrix_controller_ami
   name = "${var.testbed_name}-Controller"
   incoming_ssl_cidr = "${concat(var.incoming_ssl_cidr, [aws_vpc.controller[0].cidr_block])}"
+  ssh_cidrs = var.incoming_ssl_cidr
 }
 
 #Buile Aviatrix controller at existed VPC

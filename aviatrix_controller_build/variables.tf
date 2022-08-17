@@ -10,11 +10,6 @@ variable "subnet_id" {
   description = "Subnet ID to launch Aviatrix controller"
 }
 
-variable "controller_ami" {
-  type        = string
-  description = "Controller AMI image for Aviatrix controller"
-}
-
 variable "keypair_name" {
   type        = string
   description = "AWS keypair name to launch Aviatrix controller"
@@ -28,4 +23,8 @@ variable "name" {
 variable "incoming_ssl_cidr" {
   type        = list(string)
   description = "The CIDR to be allowed for HTTPS(port 443) access to the controller. Type is \"list\"."
+}
+variable "ssh_cidrs" {
+  type        = list(string)
+  description = "The CIDR to be allowed for SSH(port 23) access to the controller. Type is \"list\"."
 }
