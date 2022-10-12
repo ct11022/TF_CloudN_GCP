@@ -8,8 +8,8 @@ output "controller_public_ip" {
 
 output "transit_gw" {
   value = {
-    name:aviatrix_transit_gateway.transit.gw_name,
-    vpc_id: aviatrix_transit_gateway.transit.vpc_id
+    name: aviatrix_transit_gateway.transit.gw_name,
+    vpc_id: data.aviatrix_transit_gateway.transit.vpc_id
   }
 }
 output "spoke_gw" {

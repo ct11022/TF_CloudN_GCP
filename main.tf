@@ -184,6 +184,9 @@ resource "aviatrix_transit_gateway" "transit" {
     # aviatrix_spoke_gateway.spoke,
     time_sleep.wait_60s
   ]
+	lifecycle {
+		ignore_changes = all
+	}
 }
 
 # Create an Aviatrix GCP Spoke Gateway
@@ -204,6 +207,9 @@ resource "aviatrix_spoke_gateway" "spoke" {
     module.gcp-spoke-vnet,
     time_sleep.wait_60s
   ]
+	lifecycle {
+		ignore_changes = all
+	}
 }
 
 # Create Spoke-Transit Attachment
@@ -214,6 +220,11 @@ resource "aviatrix_spoke_transit_attachment" "spoke" {
   transit_gw_name = aviatrix_transit_gateway.transit.gw_name
 }
 
+# Aviatrix Transit Gateway Data Source
+data "aviatrix_transit_gateway" "transit" {
+  provider     = aviatrix.new_controller
+  gw_name      = aviatrix_transit_gateway.transit.gw_name
+}
 
 # Following is CloudN Registration and Attachment.
 # locals {
