@@ -184,9 +184,6 @@ resource "aviatrix_transit_gateway" "transit" {
     # aviatrix_spoke_gateway.spoke,
     time_sleep.wait_60s
   ]
-	lifecycle {
-		ignore_changes = all
-	}
 }
 
 # Create an Aviatrix GCP Spoke Gateway
@@ -207,9 +204,6 @@ resource "aviatrix_spoke_gateway" "spoke" {
     module.gcp-spoke-vnet,
     time_sleep.wait_60s
   ]
-	lifecycle {
-		ignore_changes = all
-	}
 }
 
 # Create Spoke-Transit Attachment
