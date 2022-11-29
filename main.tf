@@ -141,10 +141,11 @@ resource "time_sleep" "wait_60s" {
 
 # Create spoke VNET and end VM.
 module "gcp-spoke-vnet" {
-  source              = "git@github.com:AviatrixDev/automation_test_scripts.git//Regression_Testbed_TF_Module/modules/testbed-vpc-gcp?ref=master"
+  source                = "git@github.com:AviatrixDev/automation_test_scripts.git//Regression_Testbed_TF_Module/modules/testbed-vpc-gcp?ref=master"
   // please do not use special characters such as `\/"[]:|<>+=;,?*@&~!#$%^()_{}'` in the controller_name
   vpc_count             = var.spoke_count
-  resource_name_label = "${var.testbed_name}-spoke"
+  resource_name_label   = "${var.testbed_name}-spoke"
+  disable_pri_vpc       = var.disable_pri_vpc
   pub_subnet            = var.pub_subnet1_cidr
   pri_subnet            = var.pri_subnet1_cidr
   pub_instance_zone     = ["${var.spoke_vpc_reg}-a"]
