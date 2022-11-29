@@ -56,6 +56,10 @@ variable "pri_subnet1_cidr" {
   type        = list(string)
   default     = ["10.8.2.0/24"]
 }
+variable "disable_pri_vpc" {
+  type        = bool
+  default     = false
+}
 variable "controller_vpc_id" {
   description = "create controller at existed vpc"
   default = ""
