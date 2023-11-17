@@ -15,43 +15,43 @@ resource "tls_private_key" "terraform_key" {
   rsa_bits  = 4096
 }
 resource "local_file" "cloud_pem" {
-  count     = (local.new_key ? 1 : 0)
+  count           = (local.new_key ? 1 : 0)
   filename        = "cloudtls.pem"
   content         = tls_private_key.terraform_key[0].private_key_pem
   file_permission = "0600"
 }
 
 resource "random_id" "key_id" {
-  count     = (local.new_key ? 1 : 0)
-	byte_length = 4
+  count       = (local.new_key ? 1 : 0)
+  byte_length = 4
 }
 
 # Create AWS keypair
 resource "aws_key_pair" "controller" {
-  count     = (local.new_key ? 1 : 0)
+  count      = (local.new_key ? 1 : 0)
   key_name   = "controller-key-${random_id.key_id[0].dec}"
   public_key = tls_private_key.terraform_key[0].public_key_openssh
 }
 
 module "aviatrix_controller_build" {
-  source                = "git@github.com:AviatrixDev/terraform-aviatrix-aws-controller.git//modules/aviatrix-controller-build?ref=main"
-  use_existing_vpc      = (var.controller_vpc_id !="" ? true : false)
-  vpc_id                = var.controller_vpc_id
-  subnet_id             = var.controller_subnet_id
-  use_existing_keypair  = true
-  key_pair_name         = (local.new_key ? aws_key_pair.controller[0].key_name : var.keypair_name)
-  ec2_role_name         = "aviatrix-role-ec2"
-  name_prefix           = var.testbed_name
-  allow_upgrade_jump    = true
-  enable_ssh            = true
-  incoming_ssl_cidrs    = ["0.0.0.0/0"]
+  source               = "git@github.com:AviatrixDev/terraform-aviatrix-aws-controller.git//modules/aviatrix-controller-build?ref=main"
+  use_existing_vpc     = (var.controller_vpc_id != "" ? true : false)
+  vpc_id               = var.controller_vpc_id
+  subnet_id            = var.controller_subnet_id
+  use_existing_keypair = true
+  key_pair_name        = (local.new_key ? aws_key_pair.controller[0].key_name : var.keypair_name)
+  ec2_role_name        = "aviatrix-role-ec2"
+  name_prefix          = var.testbed_name
+  allow_upgrade_jump   = true
+  enable_ssh           = true
+  incoming_ssl_cidrs   = ["0.0.0.0/0"]
 }
 
 
 locals {
-  controller_pub_ip = module.aviatrix_controller_build.public_ip
-  controller_pri_ip = module.aviatrix_controller_build.private_ip
-  iptable_ssl_cidr_jsonencode = jsonencode([for i in var.incoming_ssl_cidrs :  {"addr"= i, "desc"= "" }])
+  controller_pub_ip           = module.aviatrix_controller_build.public_ip
+  controller_pri_ip           = module.aviatrix_controller_build.private_ip
+  iptable_ssl_cidr_jsonencode = jsonencode([for i in var.incoming_ssl_cidrs : { "addr" = i, "desc" = "" }])
 }
 
 #Initialize Controller GCP
@@ -66,19 +66,19 @@ module "aviatrix_controller_initialize" {
   access_account_name                 = var.aviatrix_access_account
   aviatrix_customer_id                = var.aviatrix_license_id
   controller_version                  = var.upgrade_target_version
-  depends_on          = [
+  depends_on = [
     module.aviatrix_controller_build
   ]
 }
 
-resource aws_security_group_rule ingress_rule_ssh {
+resource "aws_security_group_rule" "ingress_rule_ssh" {
   type              = "ingress"
   from_port         = 22
   to_port           = 22
   protocol          = "tcp"
   cidr_blocks       = var.incoming_ssl_cidrs
   security_group_id = module.aviatrix_controller_build.security_group_id
-  depends_on = [ module.aviatrix_controller_initialize ]
+  depends_on        = [module.aviatrix_controller_initialize]
 }
 
 resource "null_resource" "call_api_set_allow_list" {
@@ -94,37 +94,37 @@ resource "null_resource" "call_api_set_allow_list" {
 }
 
 resource "aviatrix_controller_cert_domain_config" "controller_cert_domain" {
-    provider    = aviatrix.new_controller
-    cert_domain = var.cert_domain
-    depends_on  = [
-      null_resource.call_api_set_allow_list
-    ]
+  provider    = aviatrix.new_controller
+  cert_domain = var.cert_domain
+  depends_on = [
+    null_resource.call_api_set_allow_list
+  ]
 }
 
 resource "time_sleep" "wait_60s" {
   create_duration = "60s"
-  depends_on      = [
+  depends_on = [
     aviatrix_controller_cert_domain_config.controller_cert_domain
   ]
 }
 
 # Create spoke VNET and end VM.
 module "gcp-spoke-vnet" {
-  source                = "git@github.com:AviatrixDev/automation_test_scripts.git//Regression_Testbed_TF_Module/modules/testbed-vpc-gcp?ref=master"
+  source = "git@github.com:AviatrixDev/automation_test_scripts.git//Regression_Testbed_TF_Module/modules/testbed-vpc-gcp?ref=master"
   // please do not use special characters such as `\/"[]:|<>+=;,?*@&~!#$%^()_{}'` in the controller_name
-  vpc_count             = var.spoke_count
-  resource_name_label   = "${var.testbed_name}-spoke"
-  disable_pri_vpc       = var.disable_pri_vpc
-  pub_subnet            = var.pub_subnet1_cidr
-  pri_subnet            = var.pri_subnet1_cidr
-  pub_instance_zone     = ["${var.spoke_vpc_reg}-a"]
-  pri_instance_zone     = ["${var.spoke_vpc_reg}-b"]
-  pub_subnet_region     = var.spoke_vpc_reg
-  pri_subnet_region     = var.spoke_vpc_reg
-  pub_hostnum           = 20
-  pri_hostnum           = 40
-  ssh_user              = var.ssh_user
-  public_key            = (local.new_key ? tls_private_key.terraform_key[0].public_key_openssh : file(var.public_key_path))
+  vpc_count           = var.spoke_count
+  resource_name_label = "${var.testbed_name}-spoke"
+  disable_pri_vpc     = var.disable_pri_vpc
+  pub_subnet          = var.pub_subnet1_cidr
+  pri_subnet          = var.pri_subnet1_cidr
+  pub_instance_zone   = ["${var.spoke_vpc_reg}-a"]
+  pri_instance_zone   = ["${var.spoke_vpc_reg}-b"]
+  pub_subnet_region   = var.spoke_vpc_reg
+  pri_subnet_region   = var.spoke_vpc_reg
+  pub_hostnum         = 20
+  pri_hostnum         = 40
+  ssh_user            = var.ssh_user
+  public_key          = (local.new_key ? tls_private_key.terraform_key[0].public_key_openssh : file(var.public_key_path))
 }
 
 # Create a GCP VPC
@@ -140,7 +140,7 @@ resource "aviatrix_vpc" "transit" {
     region = var.transit_vpc_reg
     cidr   = "192.168.0.0/16"
   }
-  depends_on  = [
+  depends_on = [
     time_sleep.wait_60s
   ]
 }
@@ -159,7 +159,7 @@ resource "aviatrix_transit_gateway" "transit" {
   ha_subnet    = (var.transit_subnet_cidr != "" ? cidrsubnet(var.transit_subnet_cidr, 0, 0) : aviatrix_vpc.transit[0].subnets[0].cidr)
   ha_gw_size   = var.transit_gw_size
   insane_mode  = true
-  depends_on   = [
+  depends_on = [
     aviatrix_vpc.transit,
     # aviatrix_spoke_gateway.spoke,
     time_sleep.wait_60s
@@ -168,17 +168,17 @@ resource "aviatrix_transit_gateway" "transit" {
 
 # Create an Aviatrix GCP Spoke Gateway
 resource "aviatrix_spoke_gateway" "spoke" {
-  provider     = aviatrix.new_controller
-  count        = 1
-  cloud_type   = 4
-  account_name = var.aviatrix_access_account
-  gw_name      = "${var.testbed_name}-spoke-${count.index}"
-  vpc_id       = module.gcp-spoke-vnet.vpc_name[count.index]
-  vpc_reg      = "${var.spoke_vpc_reg}-a"
-  gw_size      = var.spoke_gw_size
-  subnet       = module.gcp-spoke-vnet.subnet_cidr[count.index]
+  provider          = aviatrix.new_controller
+  count             = 1
+  cloud_type        = 4
+  account_name      = var.aviatrix_access_account
+  gw_name           = "${var.testbed_name}-spoke-${count.index}"
+  vpc_id            = module.gcp-spoke-vnet.vpc_name[count.index]
+  vpc_reg           = "${var.spoke_vpc_reg}-a"
+  gw_size           = var.spoke_gw_size
+  subnet            = module.gcp-spoke-vnet.subnet_cidr[count.index]
   manage_ha_gateway = false
-  depends_on   = [
+  depends_on = [
     module.gcp-spoke-vnet,
     time_sleep.wait_60s
   ]
@@ -208,7 +208,7 @@ resource "aviatrix_spoke_transit_attachment" "spoke" {
 
 # Aviatrix Transit Gateway Data Source
 data "aviatrix_transit_gateway" "transit" {
-  provider     = aviatrix.new_controller
-  gw_name      = aviatrix_transit_gateway.transit.gw_name
+  provider = aviatrix.new_controller
+  gw_name  = aviatrix_transit_gateway.transit.gw_name
 }
 
