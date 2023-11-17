@@ -2,7 +2,7 @@ terraform {
   required_providers {
     aviatrix = {
       source = "AviatrixSystems/aviatrix"
-      # version = "2.22.1"
+      version = "3.1.2"
     }
     aws = {
       source = "hashicorp/aws"
@@ -19,7 +19,7 @@ provider "aws" {
 }
 
 provider "aviatrix" {
-  controller_ip           = local.new_vpc ? module.aviatrix_controller_build_new_vpc[0].public_ip : module.aviatrix_controller_build_existed_vpc[0].public_ip
+  controller_ip           = local.controller_pub_ip
   username                = var.aviatrix_controller_username
   password                = var.aviatrix_controller_password
   skip_version_validation = true
@@ -31,8 +31,3 @@ provider "google" {
   credentials = var.gcp_credentials_filepath
   region      = var.gcp_region
 }
-
-# provider "github" {
-#   token                  = var.github_token
-#   alias                  = "login"
-# }

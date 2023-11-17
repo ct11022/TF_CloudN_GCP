@@ -81,7 +81,7 @@ variable "public_key_path" {
   description = "The path of public key"
   default     = ""
 }
-variable "incoming_ssl_cidr" {
+variable "incoming_ssl_cidrs" {
   type        = list(string)
   description = "The CIDR to be allowed for HTTPS(port 443) access to the controller. Type is \"list\"."
   default = [ "0.0.0.0/0" ]
