@@ -1,9 +1,9 @@
 output "controller_private_ip" {
-  value = local.new_vpc ? module.aviatrix_controller_build_new_vpc[0].private_ip : module.aviatrix_controller_build_existed_vpc[0].private_ip
+  value = local.controller_pri_ip
 }
 
 output "controller_public_ip" {
-  value = local.new_vpc ? module.aviatrix_controller_build_new_vpc[0].public_ip : module.aviatrix_controller_build_existed_vpc[0].public_ip
+  value = local.controller_pub_ip
 }
 
 output "transit_gw" {
@@ -24,6 +24,10 @@ output "spoke_gw_name" {
 
 output "spoke_public_vms_info" {
   value = module.gcp-spoke-vnet.ubuntu_public_vms
+}
+
+output "spoke_public_vms_info2" {
+  value = module.gcp-spoke-vnet.ubuntu_public_vms[*]
 }
 
 # output "spoke_private_vms_info" {
