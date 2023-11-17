@@ -44,6 +44,8 @@ module "aviatrix_controller_build" {
   name_prefix          = var.testbed_name
   allow_upgrade_jump   = true
   enable_ssh           = true
+  release_infra        = var.release_infra
+  ami_id               = var.aviatrix_controller_ami_id
   incoming_ssl_cidrs   = ["0.0.0.0/0"]
 }
 
