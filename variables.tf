@@ -48,6 +48,10 @@ variable "spoke_count" {
   description = "The number of spokes to create."
   default     = 1
 }
+variable "spoke_ha_postfix_name" {
+  description = "A string to append to the spoke_ha name."
+  default     = "hagw"
+}
 variable "pub_subnet1_cidr" {
   description = "Public subnet 1 cidr"
   type        = list(string)
@@ -93,11 +97,6 @@ variable "ssh_user" {
   default = "ubuntu"
 }
 
-variable "github_token" {
-  description = "github oAthu token"
-  type        = string
-  default = ""
-}
 variable "cloudn_public_ip_cidr" {
   description = "CloudN public cide for controller incoming ssl"
   type        = string
