@@ -8,14 +8,14 @@ output "controller_public_ip" {
 
 output "transit_gw" {
   value = {
-    name: aviatrix_transit_gateway.transit.gw_name,
-    vpc_id: data.aviatrix_transit_gateway.transit.vpc_id
+    name : aviatrix_transit_gateway.transit.gw_name,
+    vpc_id : data.aviatrix_transit_gateway.transit.vpc_id
   }
 }
 output "spoke_gw" {
   value = {
-    name: aviatrix_spoke_gateway.spoke[*].gw_name,
-    vpc_id: aviatrix_spoke_gateway.spoke[*].vpc_id
+    name : aviatrix_spoke_gateway.spoke[*].gw_name,
+    vpc_id : aviatrix_spoke_gateway.spoke[*].vpc_id
   }
 }
 output "spoke_gw_name" {

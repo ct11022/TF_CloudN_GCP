@@ -34,43 +34,33 @@ resource "aws_key_pair" "controller" {
 }
 
 module "aviatrix_controller_build" {
-  source               = "git@github.com:AviatrixDev/terraform-aviatrix-aws-controller.git//modules/aviatrix-controller-build?ref=main"
-  use_existing_vpc     = (var.controller_vpc_id != "" ? true : false)
-  vpc_id               = var.controller_vpc_id
-  subnet_id            = var.controller_subnet_id
-  use_existing_keypair = true
-  key_pair_name        = (local.new_key ? aws_key_pair.controller[0].key_name : var.keypair_name)
-  ec2_role_name        = "aviatrix-role-ec2"
-  name_prefix          = var.testbed_name
-  allow_upgrade_jump   = true
-  enable_ssh           = true
-  release_infra        = var.release_infra
-  ami_id               = var.aviatrix_controller_ami_id
-  incoming_ssl_cidrs   = ["0.0.0.0/0"]
+  source                 = "git@github.com:AviatrixDev/terraform-aviatrix-aws-controller.git"
+  create_iam_roles       = false
+  use_existing_vpc       = (var.controller_vpc_id != "" ? true : false)
+  vpc_id                 = var.controller_vpc_id
+  subnet_id              = var.controller_subnet_id
+  use_existing_keypair   = (local.new_key ? false : true)
+  key_pair_name          = (local.new_key ? aws_key_pair.controller[0].key_name : var.keypair_name)
+  ec2_role_name          = "aviatrix-role-ec2"
+  controller_name_prefix = var.testbed_name
+  allow_upgrade_jump     = true
+  enable_ssh             = true
+  release_infra          = var.release_infra
+  ami_id                 = var.aviatrix_controller_ami_id
+  incoming_ssl_cidrs     = ["0.0.0.0/0"]
+  aws_account_id         = data.aws_caller_identity.current.account_id
+  admin_email            = var.aviatrix_admin_email
+  admin_password         = var.aviatrix_controller_password
+  access_account_email   = var.aviatrix_admin_email
+  access_account_name    = var.aviatrix_aws_access_account
+  customer_license_id    = var.aviatrix_license_id
+  controller_version     = var.upgrade_target_version
 }
-
 
 locals {
   controller_pub_ip           = module.aviatrix_controller_build.public_ip
   controller_pri_ip           = module.aviatrix_controller_build.private_ip
   iptable_ssl_cidr_jsonencode = jsonencode([for i in var.incoming_ssl_cidrs : { "addr" = i, "desc" = "" }])
-}
-
-#Initialize Controller GCP
-module "aviatrix_controller_initialize" {
-  # source                              = "git@github.com:AviatrixSystems/terraform-aviatrix-gcp-controller.git//modules/aviatrix-controller-initialize?ref=main"
-  source                              = "git@github.com:AviatrixDev/terraform-aviatrix-gcp-controller.git//modules/aviatrix-controller-initialize?ref=main"
-  avx_controller_public_ip            = local.controller_pub_ip
-  avx_controller_private_ip           = local.controller_pri_ip
-  avx_controller_admin_email          = var.aviatrix_admin_email
-  avx_controller_admin_password       = var.aviatrix_controller_password
-  gcloud_project_credentials_filepath = var.gcp_credentials_filepath
-  access_account_name                 = var.aviatrix_access_account
-  aviatrix_customer_id                = var.aviatrix_license_id
-  controller_version                  = var.upgrade_target_version
-  depends_on = [
-    module.aviatrix_controller_build
-  ]
 }
 
 resource "aws_security_group_rule" "ingress_rule_ssh" {
@@ -80,32 +70,40 @@ resource "aws_security_group_rule" "ingress_rule_ssh" {
   protocol          = "tcp"
   cidr_blocks       = var.incoming_ssl_cidrs
   security_group_id = module.aviatrix_controller_build.security_group_id
-  depends_on        = [module.aviatrix_controller_initialize]
+  depends_on        = [module.aviatrix_controller_build]
 }
 
-resource "null_resource" "call_api_set_allow_list" {
-  provisioner "local-exec" {
-    command = <<-EOT
-            AVTX_CID=$(curl -X POST  -k https://${local.controller_pub_ip}/v1/backend1 -d 'action=login_proc&username=admin&password=Aviatrix123#'| awk -F"\"" '{print $34}');
-            curl -k -v -X PUT https://${local.controller_pub_ip}/v2.5/api/controller/allow-list --header "Content-Type: application/json" --header "Authorization: cid $AVTX_CID" -d '{"allow_list": ${local.iptable_ssl_cidr_jsonencode}, "enable": true, "enforce": true}'
-        EOT
-  }
-  depends_on = [
-    module.aviatrix_controller_initialize
-  ]
+# resource "null_resource" "call_api_set_allow_list" {
+#   provisioner "local-exec" {
+#     command = <<-EOT
+#             AVTX_CID=$(curl -X POST  -k https://${local.controller_pub_ip}/v1/backend1 -d 'action=login_proc&username=admin&password=Aviatrix123#'| awk -F"\"" '{print $34}');
+#             curl -k -v -X PUT https://${local.controller_pub_ip}/v2.5/api/controller/allow-list --header "Content-Type: application/json" --header "Authorization: cid $AVTX_CID" -d '{"allow_list": ${local.iptable_ssl_cidr_jsonencode}, "enable": true, "enforce": true}'
+#         EOT
+#   }
+#   depends_on = [
+#     module.aviatrix_controller_initialize
+#   ]
+# }
+
+# Create an Aviatrix GCP Account
+resource "aviatrix_account" "acc_gcp" {
+  provider                            = aviatrix.new_controller
+  account_name                        = var.aviatrix_gcp_access_account
+  cloud_type                          = 4
+  gcloud_project_credentials_filepath = var.gcp_credentials_filepath
+  depends_on = [ module.aviatrix_controller_build ]
 }
 
 resource "aviatrix_controller_cert_domain_config" "controller_cert_domain" {
   provider    = aviatrix.new_controller
   cert_domain = var.cert_domain
-  depends_on = [
-    null_resource.call_api_set_allow_list
-  ]
+  depends_on = [ module.aviatrix_controller_build ]
 }
 
 resource "time_sleep" "wait_60s" {
   create_duration = "60s"
   depends_on = [
+    aviatrix_account.acc_gcp,
     aviatrix_controller_cert_domain_config.controller_cert_domain
   ]
 }
@@ -132,7 +130,7 @@ module "gcp-spoke-vnet" {
 # Create a GCP VPC
 resource "aviatrix_vpc" "transit" {
   provider     = aviatrix.new_controller
-  account_name = var.aviatrix_access_account
+  account_name = var.aviatrix_gcp_access_account
   count        = (var.transit_vpc_id != "" ? 0 : 1)
   cloud_type   = 4
   name         = "${var.testbed_name}-tr-vpc"
@@ -143,6 +141,7 @@ resource "aviatrix_vpc" "transit" {
     cidr   = "192.168.0.0/16"
   }
   depends_on = [
+    aviatrix_account.acc_gcp,
     time_sleep.wait_60s
   ]
 }
@@ -151,7 +150,7 @@ resource "aviatrix_vpc" "transit" {
 resource "aviatrix_transit_gateway" "transit" {
   provider     = aviatrix.new_controller
   cloud_type   = 4
-  account_name = var.aviatrix_access_account
+  account_name = var.aviatrix_gcp_access_account
   gw_name      = "${var.testbed_name}-transit-gw"
   vpc_id       = (var.transit_vpc_id != "" ? var.transit_vpc_id : aviatrix_vpc.transit[0].vpc_id)
   vpc_reg      = "${var.transit_vpc_reg}-a"
@@ -162,8 +161,8 @@ resource "aviatrix_transit_gateway" "transit" {
   ha_gw_size   = var.transit_gw_size
   insane_mode  = true
   depends_on = [
+    aviatrix_account.acc_gcp,
     aviatrix_vpc.transit,
-    # aviatrix_spoke_gateway.spoke,
     time_sleep.wait_60s
   ]
 }
@@ -173,7 +172,7 @@ resource "aviatrix_spoke_gateway" "spoke" {
   provider          = aviatrix.new_controller
   count             = 1
   cloud_type        = 4
-  account_name      = var.aviatrix_access_account
+  account_name      = var.aviatrix_gcp_access_account
   gw_name           = "${var.testbed_name}-spoke-${count.index}"
   vpc_id            = module.gcp-spoke-vnet.vpc_name[count.index]
   vpc_reg           = "${var.spoke_vpc_reg}-a"
@@ -181,6 +180,7 @@ resource "aviatrix_spoke_gateway" "spoke" {
   subnet            = module.gcp-spoke-vnet.subnet_cidr[count.index]
   manage_ha_gateway = false
   depends_on = [
+    aviatrix_account.acc_gcp,
     module.gcp-spoke-vnet,
     time_sleep.wait_60s
   ]
