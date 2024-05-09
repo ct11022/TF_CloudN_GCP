@@ -3,9 +3,15 @@
 
 data "aws_caller_identity" "current" {}
 
+data "http" "icanhazip" {
+  url = "http://icanhazip.com"
+}
+
 locals {
   # Proper boolean usage
-  new_key = (var.keypair_name == "" ? true : false)
+  new_key                     = (var.keypair_name == "" ? true : false)
+  new_incoming_ssl_cidrs      = concat(var.incoming_ssl_cidrs, ["${chomp(data.http.icanhazip.response_body)}/32"])
+  iptable_ssl_cidr_jsonencode = jsonencode([for i in local.new_incoming_ssl_cidrs : { "addr" = i, "desc" = "" }])
 }
 
 # Public-Private key generation
@@ -58,9 +64,8 @@ module "aviatrix_controller_build" {
 }
 
 locals {
-  controller_pub_ip           = module.aviatrix_controller_build.public_ip
-  controller_pri_ip           = module.aviatrix_controller_build.private_ip
-  iptable_ssl_cidr_jsonencode = jsonencode([for i in var.incoming_ssl_cidrs : { "addr" = i, "desc" = "" }])
+  controller_pub_ip = module.aviatrix_controller_build.public_ip
+  controller_pri_ip = module.aviatrix_controller_build.private_ip
 }
 
 resource "aws_security_group_rule" "ingress_rule_ssh" {
@@ -68,7 +73,7 @@ resource "aws_security_group_rule" "ingress_rule_ssh" {
   from_port         = 22
   to_port           = 22
   protocol          = "tcp"
-  cidr_blocks       = var.incoming_ssl_cidrs
+  cidr_blocks       = local.new_incoming_ssl_cidrs
   security_group_id = module.aviatrix_controller_build.security_group_id
   depends_on        = [module.aviatrix_controller_build]
 }
@@ -91,13 +96,13 @@ resource "aviatrix_account" "acc_gcp" {
   account_name                        = var.aviatrix_gcp_access_account
   cloud_type                          = 4
   gcloud_project_credentials_filepath = var.gcp_credentials_filepath
-  depends_on = [ module.aviatrix_controller_build ]
+  depends_on                          = [module.aviatrix_controller_build]
 }
 
 resource "aviatrix_controller_cert_domain_config" "controller_cert_domain" {
   provider    = aviatrix.new_controller
   cert_domain = var.cert_domain
-  depends_on = [ module.aviatrix_controller_build ]
+  depends_on  = [module.aviatrix_controller_build]
 }
 
 resource "time_sleep" "wait_60s" {

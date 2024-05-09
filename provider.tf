@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     aviatrix = {
-      source  = "AviatrixSystems/aviatrix"
+      source = "AviatrixSystems/aviatrix"
       # version = "3.1.2"
     }
     aws = {
@@ -14,8 +14,9 @@ terraform {
 }
 provider "aws" {
   region     = var.aws_region
-  access_key = var.aws_access_key
-  secret_key = var.aws_secret_key
+  shared_config_files      = var.aws_shared_config_files
+  shared_credentials_files = var.aws_shared_credentials_files
+  profile                  = var.aws_shared_config_profile_name
 }
 
 provider "aviatrix" {
